@@ -31,7 +31,17 @@ class PongGame:
                 self.running = False
 
     def _update(self):
-        pass
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_w]:
+            self.left_paddle.move_up()
+        if keys[pygame.K_s]:
+            self.left_paddle.move_down()
+
+        if keys[pygame.K_UP]:
+            self.right_paddle.move_up()
+        if keys[pygame.K_DOWN]:
+            self.right_paddle.move_down()
 
     def _draw(self):
         self.screen.fill(BG_COLOR)
