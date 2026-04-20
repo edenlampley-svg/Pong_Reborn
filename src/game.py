@@ -43,6 +43,8 @@ class PongGame:
         if keys[pygame.K_DOWN]:
             self.right_paddle.move_down()
 
+        self.ball.move()
+
     def _draw(self):
         self.screen.fill(BG_COLOR)
         self.left_paddle.draw(self.screen)
