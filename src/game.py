@@ -1,0 +1,41 @@
+import pygame
+from src.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BG_COLOR
+from src.paddle import Paddle
+from src.ball import Ball
+
+
+class PongGame:
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("Pong Reborn")
+        self.clock = pygame.time.Clock()
+        self.running = True
+
+        self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
+        self.right_paddle = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
+        self.ball = Ball(SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - 10)
+
+    def run(self):
+        while self.running:
+            self._handle_events()
+            self._update()
+            self._draw()
+            self.clock.tick(FPS)
+
+        pygame.quit()
+
+    def _handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+
+    def _update(self):
+        pass
+
+    def _draw(self):
+        self.screen.fill(BG_COLOR)
+        self.left_paddle.draw(self.screen)
+        self.right_paddle.draw(self.screen)
+        self.ball.draw(self.screen)
+        pygame.display.flip()
