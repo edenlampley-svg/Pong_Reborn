@@ -2,6 +2,7 @@ import pygame
 from src.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BG_COLOR
 from src.paddle import Paddle
 from src.ball import Ball
+from src.scoreboard import Scoreboard
 
 
 class PongGame:
@@ -11,6 +12,7 @@ class PongGame:
         pygame.display.set_caption("Pong Reborn")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.scoreboard = Scoreboard()
 
         self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
         self.right_paddle = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
@@ -54,9 +56,18 @@ class PongGame:
         if self.ball.rect.colliderect(self.right_paddle.rect):
             self.ball.speed_x *= -1
 
+        if self.ball.rect.left <= 0:
+            self.scoreboard.right_score += 1
+            self.ball.reset()
+
+        if self.ball.rect.right >= SCREEN_WIDTH:
+            self.scoreboard.left_score += 1
+            self.ball.reset()
+
     def _draw(self):
         self.screen.fill(BG_COLOR)
         self.left_paddle.draw(self.screen)
         self.right_paddle.draw(self.screen)
         self.ball.draw(self.screen)
+        self.scoreboard.draw(self.screen)
         pygame.display.flip()
