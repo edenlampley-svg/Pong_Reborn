@@ -45,6 +45,9 @@ class PongGame:
 
         self.ball.move()
 
+        if self.ball.rect.top <= 0 or self.ball.rect.bottom >= SCREEN_HEIGHT:
+            self.ball.speed_y *= -1
+
     def _draw(self):
         self.screen.fill(BG_COLOR)
         self.left_paddle.draw(self.screen)
