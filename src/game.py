@@ -74,11 +74,11 @@ class PongGame:
         if self.ball.rect.top <= 0 or self.ball.rect.bottom >= SCREEN_HEIGHT:
             self.ball.speed_y *= -1
 
-        if self.ball.rect.colliderect(self.left_paddle.rect):
-            self.ball.speed_x *= -1
+        if self.ball.rect.colliderect(self.left_paddle.rect) and self.ball.speed_x < 0:
+            self._handle_paddle_bounce(self.left_paddle, moving_right=True)
 
-        if self.ball.rect.colliderect(self.right_paddle.rect):
-            self.ball.speed_x *= -1
+        if self.ball.rect.colliderect(self.right_paddle.rect) and self.ball.speed_x > 0:
+            self._handle_paddle_bounce(self.right_paddle, moving_right=False)
 
         if self.ball.rect.left <= 0:
             self.scoreboard.right_score += 1
@@ -143,3 +143,23 @@ class PongGame:
             self.screen.blit(controls_text, controls_rect)
 
         pygame.display.flip()
+
+    def _handle_paddle_bounce(self, paddle, moving_right):
+        ball_center = self.ball.rect.centery
+        paddle_center = paddle.rect.centery
+
+        relative_intersect = ball_center - paddle_center
+        normalized_intersect = relative_intersect / (paddle.rect.height / 2)
+
+        max_bounce_speed = 6
+        self.ball.speed_y = normalized_intersect * max_bounce_speed
+
+        current_speed = abs(self.ball.speed_x)
+        new_speed = min(current_speed + 0.5, 12)
+
+        if moving_right:
+            self.ball.speed_x = new_speed
+            self.ball.rect.left = paddle.rect.right
+        else:
+            self.ball.speed_x = -new_speed
+            self.ball.rect.right = paddle.rect.left
