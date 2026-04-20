@@ -12,11 +12,13 @@ class PongGame:
         pygame.display.set_caption("Pong Reborn")
         self.clock = pygame.time.Clock()
         self.running = True
-        self.scoreboard = Scoreboard()
 
         self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
         self.right_paddle = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
         self.ball = Ball(SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - 10)
+
+        self.scoreboard = Scoreboard()
+        self.ai_speed = 4
 
     def run(self):
         while self.running:
@@ -40,16 +42,21 @@ class PongGame:
         if keys[pygame.K_s]:
             self.left_paddle.move_down()
 
-        if keys[pygame.K_UP]:
-            self.right_paddle.move_up()
-        if keys[pygame.K_DOWN]:
-            self.right_paddle.move_down()
+        if self.ball.rect.centery < self.right_paddle.rect.centery:
+            self.right_paddle.rect.y -= self.ai_speed
+        elif self.ball.rect.centery > self.right_paddle.rect.centery:
+            self.right_paddle.rect.y += self.ai_speed
+
+        if self.right_paddle.rect.top < 0:
+            self.right_paddle.rect.top = 0
+        if self.right_paddle.rect.bottom > SCREEN_HEIGHT:
+            self.right_paddle.rect.bottom = SCREEN_HEIGHT
 
         self.ball.move()
 
         if self.ball.rect.top <= 0 or self.ball.rect.bottom >= SCREEN_HEIGHT:
             self.ball.speed_y *= -1
-        
+
         if self.ball.rect.colliderect(self.left_paddle.rect):
             self.ball.speed_x *= -1
 
@@ -66,8 +73,19 @@ class PongGame:
 
     def _draw(self):
         self.screen.fill(BG_COLOR)
+
+        # center line
+        pygame.draw.line(
+            self.screen,
+            (255, 255, 255),
+            (SCREEN_WIDTH // 2, 0),
+            (SCREEN_WIDTH // 2, SCREEN_HEIGHT),
+            4
+        )
+
         self.left_paddle.draw(self.screen)
         self.right_paddle.draw(self.screen)
         self.ball.draw(self.screen)
         self.scoreboard.draw(self.screen)
+
         pygame.display.flip()
