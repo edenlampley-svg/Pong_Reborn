@@ -20,6 +20,9 @@ class PongGame:
         self.scoreboard = Scoreboard()
         self.ai_speed = 4
 
+        self.game_started = False
+        self.font = pygame.font.Font(None, 48)
+
     def run(self):
         while self.running:
             self._handle_events()
@@ -34,7 +37,14 @@ class PongGame:
             if event.type == pygame.QUIT:
                 self.running = False
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.game_started = True
+
     def _update(self):
+        if not self.game_started:
+            return
+
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_w]:
@@ -88,4 +98,14 @@ class PongGame:
         self.ball.draw(self.screen)
         self.scoreboard.draw(self.screen)
 
+        if not self.game_started:
+            start_text = self.font.render("Press SPACE to Start", True, (255, 255, 255))
+            controls_text = self.font.render("Use W and S keys to move", True, (255, 255, 255))
+
+            start_rect = start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+            controls_rect = controls_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 30))
+
+            self.screen.blit(start_text, start_rect)
+            self.screen.blit(controls_text, controls_rect)
+        
         pygame.display.flip()
