@@ -18,14 +18,24 @@ class PongGame:
         self.ball = Ball(SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - 10)
 
         self.scoreboard = Scoreboard()
-        self.ai_speed = 4
+
+        self.player_speed = 6
+        self.ai_start_speed = 4
+        self.ai_speed = self.ai_start_speed
+        self.ai_max_speed = self.player_speed - 1
+
+        self.ai_ramp_active = False
+        self.ai_acceleration = 0.01
 
         self.game_started = False
+        self.game_over = False
+        self.winner = ""
+
+        self.start_time = None
+
         self.font = pygame.font.Font(None, 48)
 
         self.winning_score = 5
-        self.game_over = False
-        self.winner = ""
 
     def run(self):
         while self.running:
@@ -44,6 +54,8 @@ class PongGame:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and not self.game_over:
                     self.game_started = True
+                    if self.start_time is None:
+                        self.start_time = pygame.time.get_ticks()
 
                 if event.key == pygame.K_RETURN and self.game_over:
                     self._reset_game()
@@ -88,6 +100,19 @@ class PongGame:
             self.scoreboard.left_score += 1
             self.ball.reset()
 
+        if self.scoreboard.left_score >= 1:
+            self.ai_ramp_active = True
+
+        if self.start_time is not None:
+            elapsed_time = pygame.time.get_ticks() - self.start_time
+            if elapsed_time >= 20000:
+                self.ai_ramp_active = True
+
+        if self.ai_ramp_active and self.ai_speed < self.ai_max_speed:
+            self.ai_speed += self.ai_acceleration
+            if self.ai_speed > self.ai_max_speed:
+                self.ai_speed = self.ai_max_speed
+
         if self.scoreboard.left_score >= self.winning_score:
             self.game_over = True
             self.winner = "Player Wins!"
@@ -105,6 +130,9 @@ class PongGame:
         self.game_started = False
         self.game_over = False
         self.winner = ""
+        self.ai_speed = self.ai_start_speed
+        self.ai_ramp_active = False
+        self.start_time = None
     
     def _draw(self):
         self.screen.fill(BG_COLOR)
