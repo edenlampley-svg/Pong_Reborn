@@ -3,7 +3,7 @@ from src.settings import WHITE, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class Ball:
-    def __init__(self, x, y, size=20, speed_x=5, speed_y=5):
+    def __init__(self, x, y, size=20, speed_x=6, speed_y=6):
         self.rect = pygame.Rect(x, y, size, size)
         self.start_x = x
         self.start_y = y

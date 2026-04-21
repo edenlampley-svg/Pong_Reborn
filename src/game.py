@@ -19,12 +19,15 @@ class PongGame:
 
         self.scoreboard = Scoreboard()
 
-        self.player_speed = 6
+        self.player_speed = 7
         self.ai_start_speed = 4
         self.ai_speed = self.ai_start_speed
-        self.ai_max_speed = self.player_speed - 1
+
+        self.ai_phase_one_max = self.player_speed - 2
+        self.ai_phase_two_max = self.player_speed - 1.5
 
         self.ai_ramp_active = False
+        self.ai_phase_two_active = False
         self.ai_acceleration = 0.01
 
         self.game_started = False
@@ -108,10 +111,23 @@ class PongGame:
             if elapsed_time >= 20000:
                 self.ai_ramp_active = True
 
-        if self.ai_ramp_active and self.ai_speed < self.ai_max_speed:
+        if self.scoreboard.left_score >= 4:
+            self.ai_phase_two_active = True
+
+        if self.start_time is not None:
+            elapsed_time = pygame.time.get_ticks() - self.start_time
+            if elapsed_time >= 40000:
+                self.ai_phase_two_active = True
+
+        if self.ai_phase_two_active and self.ai_speed < self.ai_phase_two_max:
             self.ai_speed += self.ai_acceleration
-            if self.ai_speed > self.ai_max_speed:
-                self.ai_speed = self.ai_max_speed
+            if self.ai_speed > self.ai_phase_two_max:
+                self.ai_speed = self.ai_phase_two_max
+
+        elif self.ai_ramp_active and self.ai_speed < self.ai_phase_one_max:
+            self.ai_speed += self.ai_acceleration
+            if self.ai_speed > self.ai_phase_one_max:
+                self.ai_speed = self.ai_phase_one_max
 
         if self.scoreboard.left_score >= self.winning_score:
             self.game_over = True
@@ -130,8 +146,10 @@ class PongGame:
         self.game_started = False
         self.game_over = False
         self.winner = ""
+
         self.ai_speed = self.ai_start_speed
         self.ai_ramp_active = False
+        self.ai_phase_two_active = False
         self.start_time = None
     
     def _draw(self):
@@ -179,7 +197,7 @@ class PongGame:
         relative_intersect = ball_center - paddle_center
         normalized_intersect = relative_intersect / (paddle.rect.height / 2)
 
-        max_bounce_speed = 6
+        max_bounce_speed = 5.5
         self.ball.speed_y = normalized_intersect * max_bounce_speed
 
         current_speed = abs(self.ball.speed_x)
