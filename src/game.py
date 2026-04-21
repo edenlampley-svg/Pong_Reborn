@@ -15,7 +15,7 @@ class PongGame:
         self.running = True
 
 
-        self.test_mode = True
+        self.test_mode = False
 
 
         self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
