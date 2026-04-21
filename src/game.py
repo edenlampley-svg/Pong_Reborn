@@ -35,7 +35,7 @@ class PongGame:
 
         self.font = pygame.font.Font(None, 48)
 
-        self.winning_score = 5
+        self.winning_score = 10
 
     def run(self):
         while self.running:
@@ -100,7 +100,7 @@ class PongGame:
             self.scoreboard.left_score += 1
             self.ball.reset()
 
-        if self.scoreboard.left_score >= 1:
+        if self.scoreboard.left_score >= 2:
             self.ai_ramp_active = True
 
         if self.start_time is not None:
