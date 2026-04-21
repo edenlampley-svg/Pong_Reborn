@@ -13,22 +13,31 @@ class PongGame:
         self.clock = pygame.time.Clock()
         self.running = True
 
+
+        self.test_mode = True
+
+
         self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
         self.right_paddle = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
         self.ball = Ball(SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - 10)
 
         self.scoreboard = Scoreboard()
 
+        if self.test_mode:
+            self.scoreboard.left_score = 6
+
         self.player_speed = 7
         self.ai_start_speed = 4
         self.ai_speed = self.ai_start_speed
 
         self.ai_phase_one_max = self.player_speed - 2
-        self.ai_phase_two_max = self.player_speed - 1.5
+        self.ai_phase_two_max = self.player_speed - 2
 
         self.ai_ramp_active = False
         self.ai_phase_two_active = False
         self.ai_acceleration = 0.01
+
+        self.max_bounce_speed = 5
 
         self.game_started = False
         self.game_over = False
@@ -151,6 +160,9 @@ class PongGame:
         self.ai_ramp_active = False
         self.ai_phase_two_active = False
         self.start_time = None
+
+        if self.test_mode:
+            self.scoreboard.left_score = 6
     
     def _draw(self):
         self.screen.fill(BG_COLOR)
@@ -197,11 +209,13 @@ class PongGame:
         relative_intersect = ball_center - paddle_center
         normalized_intersect = relative_intersect / (paddle.rect.height / 2)
 
-        max_bounce_speed = 5.5
-        self.ball.speed_y = normalized_intersect * max_bounce_speed
+        self.ball.speed_y = normalized_intersect * self.max_bounce_speed
 
         current_speed = abs(self.ball.speed_x)
         new_speed = min(current_speed + 0.5, 12)
+
+        if paddle == self.right_paddle and self.scoreboard.left_score >= 7:
+            new_speed = min(new_speed + 0.3, 12)
 
         if moving_right:
             self.ball.speed_x = new_speed
