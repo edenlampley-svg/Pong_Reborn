@@ -1,4 +1,5 @@
 import pygame
+import random
 from src.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, BG_COLOR
 from src.paddle import Paddle
 from src.ball import Ball
@@ -19,12 +20,25 @@ class PongGame:
 
         self.left_paddle = Paddle(30, SCREEN_HEIGHT // 2 - 50)
         self.right_paddle = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
+
         self.ball = Ball(SCREEN_WIDTH // 2 - 10, SCREEN_HEIGHT // 2 - 10)
+        self.ball_speed_boost_active = False
+
+        self.right_paddle_two = Paddle(SCREEN_WIDTH - 50, SCREEN_HEIGHT // 2 - 50)
+
+        self.bot_paddle_two_active = False
+        self.bot_paddle_two_target_x = SCREEN_WIDTH - 110
+        self.bot_paddle_two_slide_speed = 5
+
+        self.bot_paddles_aligned_bounces = 0
+        self.bot_paddle_two_gap_mode = False
+        self.paddle_alignment_tolerance = 20
+        self.gap_cover_offset = 120
 
         self.scoreboard = Scoreboard()
 
         if self.test_mode:
-            self.scoreboard.left_score = 6
+            self.scoreboard.left_score = 8
 
         self.player_speed = 7
         self.ai_start_speed = 4
@@ -72,6 +86,53 @@ class PongGame:
                 if event.key == pygame.K_RETURN and self.game_over:
                     self._reset_game()
 
+    def _predict_ball_y_at_x(self, target_x):
+        simulated_x = self.ball.rect.centerx
+        simulated_y = self.ball.rect.centery
+        speed_x = self.ball.speed_x
+        speed_y = self.ball.speed_y
+
+        if speed_x <= 0:
+            return SCREEN_HEIGHT // 2
+
+        while simulated_x < target_x:
+            simulated_x += speed_x
+            simulated_y += speed_y
+
+            if simulated_y <= 0:
+                simulated_y = 0
+                speed_y *= -1
+            elif simulated_y >= SCREEN_HEIGHT:
+                simulated_y = SCREEN_HEIGHT
+                speed_y *= -1
+
+        return simulated_y
+    
+    def _prepare_second_paddle_for_respawn(self):
+        if self.bot_paddle_two_active and random.random() < 0.5:
+            predicted_y = self._predict_ball_y_at_x(self.right_paddle_two.rect.x)
+            self.right_paddle_two.rect.centery = predicted_y
+
+            if self.right_paddle_two.rect.top < 0:
+                self.right_paddle_two.rect.top = 0
+            if self.right_paddle_two.rect.bottom > SCREEN_HEIGHT:
+                self.right_paddle_two.rect.bottom = SCREEN_HEIGHT
+
+    def _update_second_paddle_alignment_state(self):
+        if not self.bot_paddle_two_active:
+            return
+
+        y_difference = abs(self.right_paddle.rect.centery - self.right_paddle_two.rect.centery)
+
+        if y_difference <= self.paddle_alignment_tolerance:
+            self.bot_paddles_aligned_bounces += 1
+        else:
+            self.bot_paddles_aligned_bounces = 0
+            self.bot_paddle_two_gap_mode = False
+
+        if self.bot_paddles_aligned_bounces > 3:
+            self.bot_paddle_two_gap_mode = True
+
     def _update(self):
         if not self.game_started or self.game_over:
             return
@@ -93,24 +154,70 @@ class PongGame:
         if self.right_paddle.rect.bottom > SCREEN_HEIGHT:
             self.right_paddle.rect.bottom = SCREEN_HEIGHT
 
+        if self.bot_paddle_two_active:
+            if self.right_paddle_two.rect.x > self.bot_paddle_two_target_x:
+                self.right_paddle_two.rect.x -= self.bot_paddle_two_slide_speed
+
+            if self.bot_paddle_two_gap_mode:
+                if self.right_paddle.rect.centery < SCREEN_HEIGHT // 2:
+                    target_y = self.right_paddle.rect.centery + self.gap_cover_offset
+                else:
+                    target_y = self.right_paddle.rect.centery - self.gap_cover_offset
+
+                if self.right_paddle_two.rect.centery < target_y:
+                    self.right_paddle_two.rect.y += self.ai_speed
+                elif self.right_paddle_two.rect.centery > target_y:
+                    self.right_paddle_two.rect.y -= self.ai_speed
+            else:
+                if self.ball.speed_x > 0:
+                    self._move_bot_paddle_two()
+
+            if self.right_paddle_two.rect.top < 0:
+                self.right_paddle_two.rect.top = 0
+            if self.right_paddle_two.rect.bottom > SCREEN_HEIGHT:
+                self.right_paddle_two.rect.bottom = SCREEN_HEIGHT
+
         self.ball.move()
 
-        if self.ball.rect.top <= 0 or self.ball.rect.bottom >= SCREEN_HEIGHT:
+        if self.ball.rect.top <= 0:
+            self.ball.rect.top = 0
+            self.ball.speed_y *= -1
+
+        if self.ball.rect.bottom >= SCREEN_HEIGHT:
+            self.ball.rect.bottom = SCREEN_HEIGHT
             self.ball.speed_y *= -1
 
         if self.ball.rect.colliderect(self.left_paddle.rect) and self.ball.speed_x < 0:
             self._handle_paddle_bounce(self.left_paddle, moving_right=True)
 
+        if (
+            self.bot_paddle_two_active
+            and self.ball.rect.colliderect(self.right_paddle_two.rect)
+            and self.ball.speed_x > 0
+        ):
+            self._handle_paddle_bounce(self.right_paddle_two, moving_right=False)
+            self._update_second_paddle_alignment_state()
+
         if self.ball.rect.colliderect(self.right_paddle.rect) and self.ball.speed_x > 0:
             self._handle_paddle_bounce(self.right_paddle, moving_right=False)
+            self._update_second_paddle_alignment_state()
 
         if self.ball.rect.left <= 0:
             self.scoreboard.right_score += 1
             self.ball.reset()
+            self._prepare_second_paddle_for_respawn()
 
         if self.ball.rect.right >= SCREEN_WIDTH:
             self.scoreboard.left_score += 1
             self.ball.reset()
+
+        if self.scoreboard.left_score >= 8 and not self.ball_speed_boost_active:
+            self.ball_speed_boost_active = True
+            self.ball.speed_x *= 1.2
+            self.ball.speed_y *= 1.2
+
+        if self.scoreboard.left_score >= 8:
+            self.bot_paddle_two_active = True
 
         if self.scoreboard.left_score >= 2:
             self.ai_ramp_active = True
@@ -151,7 +258,11 @@ class PongGame:
         self.scoreboard.right_score = 0
         self.left_paddle.rect.y = SCREEN_HEIGHT // 2 - 50
         self.right_paddle.rect.y = SCREEN_HEIGHT // 2 - 50
+        self.right_paddle_two.rect.x = SCREEN_WIDTH - 50
+        self.right_paddle_two.rect.y = SCREEN_HEIGHT // 2 - 50
+        self.bot_paddle_two_active = False
         self.ball.reset()
+        self.ball_speed_boost_active = False
         self.game_started = False
         self.game_over = False
         self.winner = ""
@@ -160,6 +271,9 @@ class PongGame:
         self.ai_ramp_active = False
         self.ai_phase_two_active = False
         self.start_time = None
+
+        self.bot_paddles_aligned_bounces = 0
+        self.bot_paddle_two_gap_mode = False
 
         if self.test_mode:
             self.scoreboard.left_score = 6
@@ -177,6 +291,9 @@ class PongGame:
 
         self.left_paddle.draw(self.screen)
         self.right_paddle.draw(self.screen)
+        if self.bot_paddle_two_active:
+            self.right_paddle_two.draw(self.screen)
+
         self.ball.draw(self.screen)
         self.scoreboard.draw(self.screen)
 
@@ -214,7 +331,7 @@ class PongGame:
         current_speed = abs(self.ball.speed_x)
         new_speed = min(current_speed + 0.5, 12)
 
-        if paddle == self.right_paddle and self.scoreboard.left_score >= 7:
+        if paddle == self.right_paddle and self.scoreboard.left_score >= 6:
             new_speed = min(new_speed + 0.3, 12)
 
         if moving_right:
@@ -223,3 +340,17 @@ class PongGame:
         else:
             self.ball.speed_x = -new_speed
             self.ball.rect.right = paddle.rect.left
+
+    def _move_bot_paddle_two(self):
+        predicted_y = self._predict_ball_y_at_x(self.right_paddle_two.rect.x)
+        paddle_center = self.right_paddle_two.rect.centery
+
+        if predicted_y < paddle_center:
+            self.right_paddle_two.rect.y -= self.ai_speed
+        elif predicted_y > paddle_center:
+            self.right_paddle_two.rect.y += self.ai_speed
+
+        if self.right_paddle_two.rect.top < 0:
+            self.right_paddle_two.rect.top = 0
+        if self.right_paddle_two.rect.bottom > SCREEN_HEIGHT:
+            self.right_paddle_two.rect.bottom = SCREEN_HEIGHT
